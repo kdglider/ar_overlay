@@ -18,6 +18,15 @@ def Get_Homography(x, xp):
     U, s, VT = svd(A)
     V=np.transpose(VT)
     HM=V[:,-1]
+    a=0
+    b=0
+    
+    """ for loop is for verification that |H|=1 """
+
+    for i in range(len(HM)):
+        b=HM[i]*HM[i]
+        a=a+b
+    print("|H|=",a)
     HM=np.reshape(HM,(3,3))
     print("Homography Matrix=",HM)
 
