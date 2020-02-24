@@ -22,7 +22,7 @@ class ARCornerDetector:
 
     def __init__(self):
         pass
-
+    
 
     '''
     @brief      Finds all AR tag contours in a thresholded image

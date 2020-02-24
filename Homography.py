@@ -1,11 +1,19 @@
 import numpy as np
 from numpy import array
-from scipy.linalg import svd
+from numpy.linalg import svd
 
-"""x= reference corner = x
-xp=img coner =xp"""
 
-def Get_Homography(x, xp):
+'''
+@brief      Finds the homography matrix between two sets with four points each
+@param      srcPoints   4x2 NumPy array of source points in pixel coordinates
+@param      dstPoints   4x2 NumPy array of destination points in pixel coordinates
+@return     H           3x3 NumPy homography matrix
+'''
+def getHomography(srcPoints, dstPoints):
+    x = srcPoints
+    xp = dstPoints
+
+    # Generate 8x9 A matrix to solve
     A=np.array([[-x[0,0],-x[0,1],-1,0,0,0,x[0,0]*xp[0,0],x[0,1]*xp[0,0],xp[0,0]],
                 [0,0,0,-x[0,0],-x[0,1],-1,x[0,0]*xp[0,1],x[0,1]*xp[0,1],xp[0,1]],
                 [-x[1,0],-x[1,1],-1,0,0,0,x[1,0]*xp[1,0],x[1,1]*xp[1,0],xp[1,0]],
@@ -15,23 +23,11 @@ def Get_Homography(x, xp):
                 [-x[3,0],-x[3,1],-1,0,0,0,x[3,0]*xp[3,0],x[3,1]*xp[3,0],xp[3,0]],
                 [0,0,0,-x[3,0],-x[3,1],-1,x[3,0]*xp[3,1],x[3,1]*xp[3,1],xp[3,1]]])
 
-    U, s, VT = svd(A)
-    V=np.transpose(VT)
-    HM=V[:,-1]
-    a=0
-    b=0
-    
-    """ for loop is for verification that |H|=1 """
+    # Compute the SVD for A. The last vector of V will be the solution to the H matrix
+    U, S, VT = svd(A)
+    V = np.transpose(VT)
+    H = V[:,-1]
+    H = np.reshape(H, (3,3))
 
-    for i in range(len(HM)):
-        b=HM[i]*HM[i]
-        a=a+b
-    print("|H|=",a)
-    HM=np.reshape(HM,(3,3))
-    print("Homography Matrix=",HM)
-
-i=np.array([[1,2],[2,3],[5,6],[6,5]])
-
-j=np.array([[16,23],[25,31],[35,6],[66,58]])
-Get_Homography(i,j)
+    return H
 
