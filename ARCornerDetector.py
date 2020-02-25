@@ -22,7 +22,7 @@ class ARCornerDetector:
 
     def __init__(self):
         pass
-    
+
 
     '''
     @brief      Finds all AR tag contours in a thresholded image
@@ -83,9 +83,10 @@ class ARCornerDetector:
 
             # Reverse the order of the corner coordinates so they are 
             # arranged closckwise around the tag
-            cornerSet = cornerSet.tolist()
-            cornerSet.reverse()
-            cornerSet = np.array(cornerSet)
+            #cornerSet = cornerSet.tolist()
+            #cornerSet.reverse()
+            #cornerSet = np.array(cornerSet)
+            # print(cornerSet)
 
             # Append the set of corners to a list
             tagCornerSetsList.append(cornerSet)
@@ -124,7 +125,7 @@ class ARCornerDetector:
 
         #cv2.imshow('Original', self.image)
         #cv2.imshow('Median Blurring', self.blurredImage)
-        cv2.imshow('Contours', thresholdedBGR)
+        #cv2.imshow('Contours', thresholdedBGR)
         cv2.imshow('Corners', thresholdCopy)
         cv2.waitKey(0)
 
