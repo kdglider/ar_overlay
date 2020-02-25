@@ -42,73 +42,61 @@ class ARTagDecoder:
                     [-x[3,0],-x[3,1],-1,0,0,0,x[3,0]*xp[3,0],x[3,1]*xp[3,0],xp[3,0]],
                     [0,0,0,-x[3,0],-x[3,1],-1,x[3,0]*xp[3,1],x[3,1]*xp[3,1],xp[3,1]]])
 
-        # Compute the SVD for A. The last vector of V will be the solution to the H matrix
+        # Compute the SVD for A. The last vector of V will be the solution to the H matrix.
         U, s, VT = np.linalg.svd(A)
         V = np.transpose(VT)
         H = V[:,-1]
-        #print(s)
-        #print(V)
-        #print(H)
-        # A_new = U @ np.diag(s) @ VT
-        # print(A - A_new)
+
+        # Normalize H vector using the last element and reshape into a 3x3 matrix
         H = H / H[8]
         H = np.reshape(H, (3,3))
-        #print(H)
 
         return H
 
     
     '''
-    @brief      Projects a skewed AR tag into an unskewed 500x500 image for analysis
-    @param      thresholdedImage    Thresholded image from which the tag contour was taken
-    @param      tagContour          Contour of a tag
+    @brief      Projects a skewed AR tag into an 8x8 matrix to decode for analysis
+    @param      thresholdedImage    Grayscale thresholded image from which the tag contour was taken
     @param      tagCornerSet        Corner set of a tag
-    @return     unskewedTag         500x500 pixel unskewed AR tag
+    @return     unwarppedTag        8x8 matrix encoding the 64 cells of the unwarpped AR tag
     '''
-    def getUnskewedTag(self, thresholdedImage, tagContour, tagCornerSet):
-        unskewedTag = np.zeros((500, 500))
+    def unwarpTag(self, thresholdedImage, tagCornerSet):
+        # Create a small, temporary blank canvas to unwarp tag onto
+        canvas = np.zeros((50, 50))
 
-        unskewedTagCorners = np.array([[0,0], [0, np.shape(unskewedTag)[0]-1], \
-            [np.shape(unskewedTag)[1]-1, np.shape(unskewedTag)[0]-1], [np.shape(unskewedTag)[1]-1, 0]])
+        # Define 4x2 matrix of canvas corners
+        # Corners are ordered in clockwise fashion from the top-left of a tag
+        canvasCorners = np.array([[0 , 0] , [np.shape(canvas)[0]-1 , 0], \
+            [np.shape(canvas)[0]-1 , np.shape(canvas)[1]-1] , [0 , np.shape(canvas)[1]-1]])
 
-        H = self.getHomography(unskewedTagCorners, np.reshape(tagCornerSet, (4,2)))
-        #H = self.getHomography(unskewedTagCorners, unskewedTagCorners)
-        '''
-        print(H)
+        # Reshape tagCornerSet into a 4x2 matrix and get homography matrix with the canvas corners
+        H = self.getHomography(canvasCorners, np.reshape(tagCornerSet, (4,2)))
 
-        print(np.matmul(H, np.array([0,0,1])))
-        print(np.matmul(H, np.array([0,100,1])))
-        print(np.matmul(H, np.array([100,0,1])))
-        print(np.matmul(H, np.array([100,100,1])))'''
-
-        print(np.shape(thresholdedImage))
-
-        print (tagCornerSet)
-        projectedVector = np.matmul(H, np.array([0,499,1]))
-        projectedPixel = np.array([projectedVector[0]/projectedVector[2], \
-                                    projectedVector[1]/projectedVector[2]])
-        
-        projectedPixel = np.round(projectedPixel)
-        projectedPixel = projectedPixel.astype(int)
-        print(projectedPixel)
-        print(thresholdedImage)
-
-        
-        for x in range(np.shape(unskewedTag)[0]):
-            for y in range(np.shape(unskewedTag)[1]):
-                
+        # Fill all pixels of the canvas with the correct grayscale value from the thresholded image tag
+        # Note that the OpenCV image coordinate system is the reverse of the indexing used to access
+        # NumPy array values, hence the x,y reversal when changing the grayscale values
+        for x in range(np.shape(canvas)[1]):
+            for y in range(np.shape(canvas)[0]):
+                # Construct augmented vector and apply homography transformation
                 projectedVector = np.matmul(H, np.array([x,y,1]))
+
+                # Normalize the project x,y values and reconstruct a 2D pixel vector
                 projectedPixel = np.array([projectedVector[0]/projectedVector[2], \
                                            projectedVector[1]/projectedVector[2]])
                 
+                # Round pixel values and convert to integers for indexing
                 projectedPixel = np.round(projectedPixel)
                 projectedPixel = projectedPixel.astype(int)
-                #print(x)
-                #print(y)
-                #print(projectedPixel)
-                unskewedTag[y,x] = thresholdedImage[projectedPixel[1], projectedPixel[0]]
+
+                # Change the respective canvas grayscale value to match that of the thresholded image
+                canvas[y,x] = thresholdedImage[projectedPixel[1], projectedPixel[0]]
         
-        return unskewedTag
+        # Resize canvas to the required 8x8 matrix
+        unwarppedTag = cv2.resize(canvas, (8,8))
+        print(unwarppedTag)
+        return unwarppedTag
+
+
 
 if __name__ == '__main__':
     imageFilename = 'sample.png'
@@ -118,6 +106,8 @@ if __name__ == '__main__':
     arCornerDetector.visualization(image)
 
     arDecoder = ARTagDecoder()
-    tag = arDecoder.getUnskewedTag(arCornerDetector.thresholdedImage, arCornerDetector.tagContours[0], arCornerDetector.tagCornerSets[0])
-    cv2.imshow('Tag', tag)
+    tag = arDecoder.unwarpTag(arCornerDetector.thresholdedImage, arCornerDetector.tagCornerSets[0])
+
+    tag = cv2.resize(tag, (500,500))
+    cv2.imshow("Tag", tag)
     cv2.waitKey(0)
