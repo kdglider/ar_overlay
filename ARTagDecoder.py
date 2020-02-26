@@ -2,8 +2,8 @@
 Copyright (c) 2020 Hao Da (Kevin) Dong, Anshuman Singh
 @file       ARTagDecoder.py
 @date       2020/02/20
-@brief      Class to determine AR tag orientations, IDs and 
-            transformation matrices with respect to the camera
+@brief      Class with methods to correct for AR tag orientation, determine the ID and 
+            determine transformation matrices with respect to the camera
 @license    This project is released under the BSD-3-Clause license.
 '''
 
@@ -12,11 +12,16 @@ import cv2
 from ARCornerDetector import ARCornerDetector
 
 '''
-@brief      Decoder which determines the orientation, IDs and transformation matrices of all
-            AR tands in an image
+@brief      Decoder with methods that corrects for the orientation of an AR tag, determines the 
+            ID and determines the transformation matrices
 '''
 class ARTagDecoder:
-    
+    thresholdedImage = np.array([])     # Thresholded image that contains the tag
+    tagCorners = np.array([])           # Set of tag corners
+    correctedTagCorners = np.array([])  # Set of tag corners corrected for orientation
+    tag = np.array([])                  # 8x8 matrix encoding the 64 cells of an unwarpped AR tag
+    tagID = 0                           # Tag integer ID
+
 
     def __init__(self):
         pass
@@ -53,14 +58,62 @@ class ARTagDecoder:
 
         return H
 
-    
+
+    '''
+    @brief      Finds the projection matrix from a homography matrix and camera intrinsic matrix
+    @param      H   3x3 homography matrix between two sets of four corners each
+    @param      K   3x3 Camera intrinsic matrix
+    @return     P   3x3 NumPy homography matrix
+    '''
+    def getProjectionMatrix(self, H, K):
+        # Get K inverse matrix
+        invK = np.linalg.inv(K)
+
+        # Calculate Lambda scale factor
+        invKh1 = np.matmul(invK, H[:, 0])
+        invKh2 = np.matmul(invK, H[:, 1])
+        Lambda = ((np.linalg.norm(invKh1) + np.linalg.norm(invKh2))/2) ** -1
+
+        # Calculate B matrix
+        B = np.array([])
+        B_Tilda = Lambda * np.matmul(invK, H)
+        if (np.linalg.det(B_Tilda) < 0):
+            B = -(Lambda * B_Tilda)
+        else:
+            B = Lambda * B_Tilda
+
+        # Extract translation and rotation vectors
+        b1 = np.array(B[:,0])
+        b2 = np.array(B[:,1])
+        b3 = np.array(B[:,2])
+
+        r1 = Lambda * b1
+        r2 = Lambda * b2
+        r3 = np.cross(r1,r2)
+        t = Lambda * b3
+
+        # Stack row vectors and take the transpose to construct [R|t] matrix
+        RtT = np.array([r1, r2, r3, t])
+        Rt = np.transpose(RtT)
+
+        # Compute final projection matrix
+        P = np.matmul(K, Rt)
+
+        return P
+
+
     '''
     @brief      Projects a skewed AR tag into an 8x8 matrix to decode for analysis
     @param      thresholdedImage    Grayscale thresholded image from which the tag contour was taken
-    @param      tagCornerSet        Corner set of a tag
+    @param      tagCorners          Corner set of a tag
     @return     unwarppedTag        8x8 matrix encoding the 64 cells of the unwarpped AR tag
     '''
-    def unwarpTag(self, thresholdedImage, tagCornerSet):
+    def unwarpTag(self, thresholdedImage=None, tagCorners=None):
+        if (thresholdedImage.all() == None):
+            thresholdedImage=self.thresholdedImage
+        if (tagCorners.all() == None):
+            tagCorners=self.tagCorners
+
         # Create a small, temporary blank canvas to unwarp tag onto
         canvas = np.zeros((50, 50))
 
@@ -69,8 +122,8 @@ class ARTagDecoder:
         canvasCorners = np.array([[0 , 0] , [np.shape(canvas)[0]-1 , 0], \
             [np.shape(canvas)[0]-1 , np.shape(canvas)[1]-1] , [0 , np.shape(canvas)[1]-1]])
 
-        # Reshape tagCornerSet into a 4x2 matrix and get homography matrix with the canvas corners
-        H = self.getHomography(canvasCorners, np.reshape(tagCornerSet, (4,2)))
+        # Reshape tagCorners into a 4x2 matrix and get homography matrix with the canvas corners
+        H = self.getHomography(canvasCorners, np.reshape(tagCorners, (4,2)))
 
         # Fill all pixels of the canvas with the correct grayscale value from the thresholded image tag
         # Note that the OpenCV image coordinate system is the reverse of the indexing used to access
@@ -93,21 +146,84 @@ class ARTagDecoder:
         
         # Resize canvas to the required 8x8 matrix
         unwarppedTag = cv2.resize(canvas, (8,8))
-        print(unwarppedTag)
+        self.tag = unwarppedTag
+
         return unwarppedTag
+
+
+    '''
+    @brief      Corrects the orientation of a tag and decodes the ID
+    @param      thresholdedImage    Grayscale thresholded image from which the tag contour was taken
+    @param      tagCorners          Corner set of a tag
+    @return     tagID               8x8 matrix encoding the 64 cells of the unwarpped AR tag
+    '''
+    def decodeTag(self, thresholdedImage, tagCorners):
+        self.thresholdedImage = thresholdedImage
+        self.tagCorners = np.reshape(tagCorners, (4,2))
+
+        # Unwarp image tag to generate 8x8 matrix to decode orientation and ID
+        tag = self.unwarpTag(thresholdedImage, tagCorners)
+
+        # Correct tag orientation and record
+        # If orientation square is in the top-left, rotate tag and corners 180 degrees
+        if (tag[2,2] == 255):
+            tag = np.rot90(tag, k=2)
+            self.correctedTagCorners = np.roll(self.tagCorners, 2, axis=0)
+
+        # If orientation square is in the bottom-left, rotate tag and corners 90 degrees CCW
+        elif (tag[5,2] == 255):
+            tag = np.rot90(tag, k=1, axes=(0,1))
+            self.correctedTagCorners = np.roll(self.tagCorners, -1, axis=0)
+        
+        # If orientation square is in the top-right, rotate tag and corners 90 degrees CW
+        elif (tag[5,2] == 255):
+            tag = np.rot90(tag, k=1, axes=(1,0))
+            self.correctedTagCorners = np.roll(self.tagCorners, 1, axis=0)
+
+        # If orientation square is in the bottom-right; do nothing with the tag or corners
+        else:
+            self.correctedTagCorners = self.tagCorners
+
+        self.tag = tag
+
+        # With tag in correct orientation, construct ID code in binary (python string format)
+        # from the middle four squares (top-left LSB and moving CW)
+        binaryID = str(int(tag[4,3]==255)) + str(int(tag[4,4]==255)) + \
+                    str(int(tag[3,4]==255)) + str(int(tag[3,3]==255))
+        
+        # Convert binary ID to an integer
+        self.tagID = int(binaryID, 2)
+
+        return self.tagID
 
 
 
 if __name__ == '__main__':
-    imageFilename = 'sample.png'
+    imageFilename = 'multiple.png'
     image = cv2.imread(imageFilename)
+
+    K = np.array([[1406.08415449821,    2.206797873085990,      1014.136434174160],
+                  [0,                   1417.99930662800,       566.347754321696],
+                  [0,                   0,                      1]])
     
     arCornerDetector = ARCornerDetector()
     arCornerDetector.visualization(image)
 
-    arDecoder = ARTagDecoder()
-    tag = arDecoder.unwarpTag(arCornerDetector.thresholdedImage, arCornerDetector.tagCornerSets[0])
+    canvasCorners = np.array([[0 , 0] , [100, 0], \
+            [100 , 100] , [0 , 100]])
 
-    tag = cv2.resize(tag, (500,500))
-    cv2.imshow("Tag", tag)
+    arDecoder = ARTagDecoder()
+
+    H = arDecoder.getHomography(canvasCorners, np.reshape(arCornerDetector.tagCornerSets[1], (4,2)))
+    P = arDecoder.getProjectionMatrix(H, K)
+    print(P)
+
+    
+    arDecoder.decodeTag(arCornerDetector.thresholdedImage, arCornerDetector.tagCornerSets[1])
+    print(arCornerDetector.tagCornerSets[1])
+    print(arDecoder.correctedTagCorners)
+    print(arDecoder.tag)
+    print(arDecoder.tagID)
+
+    cv2.imshow("Tag", cv2.resize(arDecoder.tag, (500,500)))
     cv2.waitKey(0)

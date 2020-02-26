@@ -99,13 +99,13 @@ class ARCornerDetector:
 
     '''
     @brief      Demonstration function that can show the images, contours and points
-    @param      image                   BGR image
+    @param      image   BGR image
     @return     void
     '''
     def visualization(self, image):
         # Resize image for easy viewing
         import imutils
-        image = imutils.resize(image, width=600)
+        image = imutils.resize(image, width=1000)
 
         # Run algorithm to find AR tag corners
         self.getTagCorners(image)
