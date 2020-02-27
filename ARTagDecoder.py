@@ -34,8 +34,9 @@ class ARTagDecoder:
     @return     H           3x3 NumPy homography matrix
     '''
     def getHomography(self, srcPoints, dstPoints):
-        x = srcPoints
-        xp = dstPoints
+        # Ensure incoming point sets are of a 4x2 matrix
+        x = np.reshape(srcPoints, (4,2))
+        xp = np.reshape(dstPoints, (4,2))
 
         # Generate 8x9 A matrix to solve
         A=np.array([[-x[0,0],-x[0,1],-1,0,0,0,x[0,0]*xp[0,0],x[0,1]*xp[0,0],xp[0,0]],
@@ -119,11 +120,11 @@ class ARTagDecoder:
 
         # Define 4x2 matrix of canvas corners
         # Corners are ordered in clockwise fashion from the top-left of a tag
-        canvasCorners = np.array([[0 , 0] , [np.shape(canvas)[0]-1 , 0], \
-            [np.shape(canvas)[0]-1 , np.shape(canvas)[1]-1] , [0 , np.shape(canvas)[1]-1]])
+        canvasCorners = np.array([[0 , 0] , [np.shape(canvas)[1]-1 , 0], \
+            [np.shape(canvas)[1]-1 , np.shape(canvas)[0]-1] , [0 , np.shape(canvas)[0]-1]])
 
         # Reshape tagCorners into a 4x2 matrix and get homography matrix with the canvas corners
-        H = self.getHomography(canvasCorners, np.reshape(tagCorners, (4,2)))
+        H = self.getHomography(canvasCorners, tagCorners)
 
         # Fill all pixels of the canvas with the correct grayscale value from the thresholded image tag
         # Note that the OpenCV image coordinate system is the reverse of the indexing used to access
@@ -156,6 +157,7 @@ class ARTagDecoder:
     @param      thresholdedImage    Grayscale thresholded image from which the tag contour was taken
     @param      tagCorners          Corner set of a tag
     @return     tagID               8x8 matrix encoding the 64 cells of the unwarpped AR tag
+    @return     correctedTagCorners Tag corner set corrected for orientation
     '''
     def decodeTag(self, thresholdedImage, tagCorners):
         self.thresholdedImage = thresholdedImage
@@ -194,7 +196,7 @@ class ARTagDecoder:
         # Convert binary ID to an integer
         self.tagID = int(binaryID, 2)
 
-        return self.tagID
+        return self.tagID, self.correctedTagCorners
 
 
 
