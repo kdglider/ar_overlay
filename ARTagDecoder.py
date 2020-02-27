@@ -79,7 +79,7 @@ class ARTagDecoder:
         B = np.array([])
         B_Tilda = Lambda * np.matmul(invK, H)
         if (np.linalg.det(B_Tilda) < 0):
-            B = -(Lambda * B_Tilda)
+            B = -Lambda * B_Tilda
         else:
             B = Lambda * B_Tilda
 
@@ -209,23 +209,28 @@ if __name__ == '__main__':
                   [0,                   0,                      1]])
     
     arCornerDetector = ARCornerDetector()
-    arCornerDetector.visualization(image)
+    arCornerDetector.getTagCorners(image)
 
     canvasCorners = np.array([[0 , 0] , [100, 0], \
-            [100 , 100] , [0 , 100]])
+                              [100 , 100] , [0 , 100]])
 
     arDecoder = ARTagDecoder()
 
     H = arDecoder.getHomography(canvasCorners, np.reshape(arCornerDetector.tagCornerSets[1], (4,2)))
     P = arDecoder.getProjectionMatrix(H, K)
+    print('The projection matrix is: ')
     print(P)
 
     
     arDecoder.decodeTag(arCornerDetector.thresholdedImage, arCornerDetector.tagCornerSets[1])
+    print('The uncorrected tag corners are: ')
     print(arCornerDetector.tagCornerSets[1])
+
+    print('The corrected tag corners are: ')
     print(arDecoder.correctedTagCorners)
-    print(arDecoder.tag)
+    # print(arDecoder.tag)
+    print('The tag ID is: ')
     print(arDecoder.tagID)
 
-    cv2.imshow("Tag", cv2.resize(arDecoder.tag, (500,500)))
-    cv2.waitKey(0)
+    # cv2.imshow("Tag", cv2.resize(arDecoder.tag, (500,500)))
+    # cv2.waitKey(0)

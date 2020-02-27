@@ -72,17 +72,22 @@ class ImageOverlay:
     def overlayCorrectTag(self, image, frame, desiredTagID):
         self.tagCornerSets = self.arDetector.getTagCorners(frame)
         self.thresholdedImage = self.arDetector.thresholdedImage
-
+        
+        IDFound = False
         for i in range(np.shape(self.tagCornerSets)[0]):
             tagCorners = self.tagCornerSets[i]
             tagID, self.correctedTagCorners = self.arDecoder.decodeTag(self.thresholdedImage, tagCorners)
             self.tagContour = self.arDetector.tagContours[i]
 
             if (tagID == desiredTagID):
-                modifiedFrame = self.warpImage(image, frame, self.correctedTagCorners, self.tagContour)
-                return modifiedFrame
-            else:
-                return frame
+                IDFound = True
+                break
+        
+        if (IDFound == True):
+            modifiedFrame = self.warpImage(image, frame, self.correctedTagCorners, self.tagContour)
+            return modifiedFrame
+        else:
+            return frame
 
     
     def runApplication(self, imageFile, videoFile, desiredTagID):
@@ -93,18 +98,18 @@ class ImageOverlay:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter('output.mp4', fourcc, 30, (720, 480))
 
-        print('BP1')
+        #print('BP1')
 
         while(videoCapture.isOpened()):
             ret, frame = videoCapture.read()
-            print('BP2')
+            #print('BP2')
 
             if ret == True:
-                modifiedFrame = self.overlayCorrectTag(image, frame, desiredTagID)
-                print('BP3')
-                out.write(cv2.resize(modifiedFrame, (720, 480)))
-                print('BP4')
-                cv2.imshow("Frame", cv2.resize(modifiedFrame, (720, 480)))
+                frame = self.overlayCorrectTag(image, frame, desiredTagID)
+                #print('BP3')
+                out.write(cv2.resize(frame, (720, 480)))
+                #print('BP4')
+                cv2.imshow("Frame", cv2.resize(frame, (720, 480)))
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
@@ -113,7 +118,7 @@ class ImageOverlay:
                 break
         
         videoCapture.release()
-        out.release()
+        #out.release()
         print('Handles closed')
 
         cv2.destroyAllWindows()
@@ -124,11 +129,20 @@ class ImageOverlay:
 
 if __name__ == '__main__':
     imageFile = 'Lena.png'
-    videoFile = 'sample_videos/multipleTags.mp4'
+    videoFile = 'sample_videos/Tag2.mp4'
+
+    desiredTagID = 13
 
     imageOverlay = ImageOverlay()
+    imageOverlay.runApplication(imageFile, videoFile, desiredTagID)
 
-    imageOverlay.runApplication(imageFile, videoFile, 15)
+    '''
+    image = cv2.imread(imageFile)
+    frame = cv2.imread('multiple.png')
+    newImage = imageOverlay.overlayCorrectTag(image, frame, 15)
+    cv2.imshow('test', cv2.resize(newImage, (1000,700)))
+    cv2.waitKey(0)
+    '''
 
 
 

@@ -1,13 +1,16 @@
+import numpy as np
 import cv2
 
-videoFile = 'sample_videos/multipleTags.mp4'
-cap = cv2.VideoCapture(videoFile)
+cap = cv2.VideoCapture('multipleTags2.mp4')
+
 while(cap.isOpened()):
     ret, frame = cap.read()
-    if ret==True:
-        cv2.imshow('frame', cv2.resize(frame, (720, 480)))
-    else:
+
+    # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    cv2.imshow('frame', cv2.resize(frame, (720, 480)))
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-print('here')
 cap.release()
+cv2.destroyAllWindows()
