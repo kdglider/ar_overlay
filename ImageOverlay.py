@@ -90,59 +90,57 @@ class ImageOverlay:
             return frame
 
     
-    def runApplication(self, imageFile, videoFile, desiredTagID):
+    def runApplication(self, imageFile, videoFile, desiredTagID, saveVideo=False):
         image = cv2.imread(imageFile)
         videoCapture = cv2.VideoCapture(videoFile)
         # videoCapture.set(cv2.CAP_PROP_BUFFERSIZE, 10)
 
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter('output.mp4', fourcc, 30, (720, 480))
-
-        #print('BP1')
+        if (saveVideo == True):
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter('CubeOverlayOutput.mp4', fourcc, 30, (720, 480))
 
         while(videoCapture.isOpened()):
             ret, frame = videoCapture.read()
-            #print('BP2')
 
             if ret == True:
                 frame = self.overlayCorrectTag(image, frame, desiredTagID)
-                #print('BP3')
-                out.write(cv2.resize(frame, (720, 480)))
-                #print('BP4')
+
+                if (saveVideo == True):
+                    out.write(cv2.resize(frame, (720, 480)))
+                
                 cv2.imshow("Frame", cv2.resize(frame, (720, 480)))
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
             else:
+                cv2.waitKey(0)
                 break
         
+        # Release video and file object handles
         videoCapture.release()
-        #out.release()
-        print('Handles closed')
-
-        cv2.destroyAllWindows()
-        cv2.waitKey(1)
+        if (saveVideo == True):
+            out.release()
         
-
+        print('Video and file handles closed')
+        
 
 
 if __name__ == '__main__':
-    imageFile = 'Lena.png'
+    # Select file of image to be superimposed
+    # Select video file with AR tag(s) 
+    imageFile = 'sample_images/Lena.png'
     videoFile = 'sample_videos/Tag2.mp4'
 
+    # Select ID of the desired tag to overlay cube on
     desiredTagID = 13
 
-    imageOverlay = ImageOverlay()
-    imageOverlay.runApplication(imageFile, videoFile, desiredTagID)
+    # Choose whether or not to save the output video
+    saveVideo = False
 
-    '''
-    image = cv2.imread(imageFile)
-    frame = cv2.imread('multiple.png')
-    newImage = imageOverlay.overlayCorrectTag(image, frame, 15)
-    cv2.imshow('test', cv2.resize(newImage, (1000,700)))
-    cv2.waitKey(0)
-    '''
+    imageOverlay = ImageOverlay()
+    imageOverlay.runApplication(imageFile, videoFile, desiredTagID, saveVideo)
+
 
 
 

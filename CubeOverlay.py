@@ -26,7 +26,6 @@ class CubeOverlay:
     def __init__(self, K):
         self.K = K
 
-
     def projectCube(self, cubePoints, frame, tagCornerSet, tagContour):
         tagCorners = np.reshape(tagCornerSet, (4,2))
 
@@ -48,8 +47,6 @@ class CubeOverlay:
         
         projCubePoints = np.zeros((np.shape(cubePoints)[0] , 2))
         for i in range(np.shape(cubePoints)[0]):
-            #print(P)
-            #print(cubePoints[i])
             projPoint = np.matmul(P, np.append(cubePoints[i], 1))
             # Normalize the project x,y values and reconstruct a 2D pixel vector
             projectedPixel = np.array([projPoint[0]/projPoint[2], \
@@ -88,7 +85,7 @@ class CubeOverlay:
             tagCorners = self.tagCornerSets[i]
             tagID, self.correctedTagCorners = self.arDecoder.decodeTag(self.thresholdedImage, tagCorners)
             self.tagContour = self.arDetector.tagContours[i]
-            print(tagID)
+
             if (tagID == desiredTagID):
                 IDFound = True
                 break
@@ -100,43 +97,43 @@ class CubeOverlay:
             return frame
 
     
-    def runApplication(self, cubePoints, videoFile, desiredTagID):
+    def runApplication(self, cubePoints, videoFile, desiredTagID, saveVideo=False):
         videoCapture = cv2.VideoCapture(videoFile)
-        # videoCapture.set(cv2.CAP_PROP_BUFFERSIZE, 10)
 
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter('output.mp4', fourcc, 30, (720, 480))
+        if (saveVideo == True):
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter('CubeOverlayOutput.mp4', fourcc, 30, (720, 480))
 
-        print('BP1')
-
-        while(videoCapture.isOpened()):
+        while(True):
             ret, frame = videoCapture.read()
-            print('BP2')
 
             if ret == True:
                 frame = self.overlayCorrectTag(cubePoints, frame, desiredTagID)
-                print('BP3')
-                out.write(cv2.resize(frame, (720, 480)))
-                print('BP4')
+
+                if (saveVideo == True):
+                    out.write(cv2.resize(frame, (720, 480)))
+                
                 cv2.imshow("Frame", cv2.resize(frame, (720, 480)))
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
             else:
+                cv2.waitKey(0)
                 break
         
+        # Release video and file object handles
         videoCapture.release()
-        #out.release()
-        print('Handles closed')
-
-        cv2.destroyAllWindows()
-        cv2.waitKey(1)
+        if (saveVideo == True):
+            out.release()
+        
+        print('Video and file handles closed')
+        
         
 
-
-
 if __name__ == '__main__':
+    # Define cube vertices, with the z axis pointing down so that the x/y axes match OpenCV convention
+    # Ensure that the base points are the first 4, in CW order
     cubePoints = np.array([[0,0,0], 
                            [1,0,0],
                            [1,1,0],
@@ -146,24 +143,21 @@ if __name__ == '__main__':
                            [1,1,-1],
                            [0,1,-1]])
     
+    # Camera intrinsic matrix
     K = np.array([[1406.08415449821,    2.206797873085990,      1014.136434174160],
                   [0,                   1417.99930662800,       566.347754321696],
                   [0,                   0,                      1]])
 
-    videoFile = 'sample_videos/Tag2.mp4'
-    #videoFile = 'Tag2.mp4'
-    
-    desiredTagID = 13
+    # Select video file and ID of the desired tag to overlay cube on
+    videoFile = 'sample_videos/Tag1.mp4'
+    desiredTagID = 7
+    saveVideo = False
 
+    # Run application
     cubeOverlay = CubeOverlay(K)
-    cubeOverlay.runApplication(cubePoints, videoFile, desiredTagID)
+    cubeOverlay.runApplication(cubePoints, videoFile, desiredTagID, saveVideo)
 
-    '''
-    frame = cv2.imread('sample.png')
-    newImage = cubeOverlay.overlayCorrectTag(cubePoints, frame, 15)
-    cv2.imshow('test', cv2.resize(newImage, (700,500)))
-    cv2.waitKey(0)'''
-    
+
 
 
 

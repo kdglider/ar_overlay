@@ -75,7 +75,7 @@ class ARCornerDetector:
 
             # Continue to increase the error tolerance until the approximation produces four points
             while (True):
-                if (np.shape(cornerSet)[0] == 4):
+                if (np.shape(cornerSet)[0] <= 4):
                     break
 
                 epsilon = epsilon + 1
@@ -88,8 +88,9 @@ class ARCornerDetector:
             #cornerSet = np.array(cornerSet)
             # print(cornerSet)
 
-            # Append the set of corners to a list
-            tagCornerSetsList.append(cornerSet)
+            # Append the set of corners to a list only if there are four corners in it
+            if (np.shape(cornerSet)[0] == 4):
+                tagCornerSetsList.append(cornerSet)
         
         # Convert tagCornerSetsList from list to NumPy array
         self.tagCornerSets = np.array(tagCornerSetsList)
@@ -132,7 +133,7 @@ class ARCornerDetector:
 
 
 if __name__ == '__main__':
-    imageFilename = 'multiple.png'
+    imageFilename = 'sample_images/multipleTags.png'
     image = cv2.imread(imageFilename)
     
     arCornerDetector = ARCornerDetector()

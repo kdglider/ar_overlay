@@ -79,19 +79,15 @@ class ARTagDecoder:
         B = np.array([])
         B_Tilda = Lambda * np.matmul(invK, H)
         if (np.linalg.det(B_Tilda) < 0):
-            B = -Lambda * B_Tilda
+            B = -B_Tilda
         else:
-            B = Lambda * B_Tilda
+            B = B_Tilda
 
         # Extract translation and rotation vectors
-        b1 = np.array(B[:,0])
-        b2 = np.array(B[:,1])
-        b3 = np.array(B[:,2])
-
-        r1 = Lambda * b1
-        r2 = Lambda * b2
+        r1 = np.array(B[:,0])
+        r2 = np.array(B[:,1])
         r3 = np.cross(r1,r2)
-        t = Lambda * b3
+        t = np.array(B[:,2])
 
         # Stack row vectors and take the transpose to construct [R|t] matrix
         RtT = np.array([r1, r2, r3, t])
@@ -126,6 +122,9 @@ class ARTagDecoder:
         # Reshape tagCorners into a 4x2 matrix and get homography matrix with the canvas corners
         H = self.getHomography(canvasCorners, tagCorners)
 
+        imageXLimit = np.shape(thresholdedImage)[1]-1
+        imageYLimit = np.shape(thresholdedImage)[0]-1
+
         # Fill all pixels of the canvas with the correct grayscale value from the thresholded image tag
         # Note that the OpenCV image coordinate system is the reverse of the indexing used to access
         # NumPy array values, hence the x,y reversal when changing the grayscale values
@@ -141,6 +140,19 @@ class ARTagDecoder:
                 # Round pixel values and convert to integers for indexing
                 projectedPixel = np.round(projectedPixel)
                 projectedPixel = projectedPixel.astype(int)
+
+                # Ensure pixel coordinate are bounded to the image limits
+                if (projectedPixel[0] < 0 or projectedPixel[0] > imageXLimit):
+                    print('Out of bound x')
+                    print(projectedPixel[0])
+                    cv2.imshow('Contours', thresholdedImage)
+                    cv2.waitKey(0)
+
+                if (projectedPixel[1] < 0 or projectedPixel[1] > imageYLimit):
+                    print('Out of bound y')
+                    print(projectedPixel[1])
+                #projectedPixel[0] = min(imageXLimit, max(0, projectedPixel[0]))
+                #projectedPixel[1] = min(imageYLimit, max(0, projectedPixel[1]))
 
                 # Change the respective canvas grayscale value to match that of the thresholded image
                 canvas[y,x] = thresholdedImage[projectedPixel[1], projectedPixel[0]]
@@ -201,7 +213,7 @@ class ARTagDecoder:
 
 
 if __name__ == '__main__':
-    imageFilename = 'multiple.png'
+    imageFilename = 'sample_images/multipleTags.png'
     image = cv2.imread(imageFilename)
 
     K = np.array([[1406.08415449821,    2.206797873085990,      1014.136434174160],
