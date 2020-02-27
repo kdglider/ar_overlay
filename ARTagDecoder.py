@@ -107,9 +107,9 @@ class ARTagDecoder:
     '''
     def unwarpTag(self, thresholdedImage=None, tagCorners=None):
         if (thresholdedImage.all() == None):
-            thresholdedImage=self.thresholdedImage
+            thresholdedImage = self.thresholdedImage
         if (tagCorners.all() == None):
-            tagCorners=self.tagCorners
+            tagCorners = self.tagCorners
 
         # Create a small, temporary blank canvas to unwarp tag onto
         canvas = np.zeros((50, 50))
@@ -141,18 +141,22 @@ class ARTagDecoder:
                 projectedPixel = np.round(projectedPixel)
                 projectedPixel = projectedPixel.astype(int)
 
-                # Ensure pixel coordinate are bounded to the image limits
+                '''
                 if (projectedPixel[0] < 0 or projectedPixel[0] > imageXLimit):
                     print('Out of bound x')
                     print(projectedPixel[0])
-                    cv2.imshow('Contours', thresholdedImage)
-                    cv2.waitKey(0)
+                    print(tagCorners)
+                    #cv2.imshow('Contours', thresholdedImage)
+                    #cv2.waitKey(0)
 
                 if (projectedPixel[1] < 0 or projectedPixel[1] > imageYLimit):
                     print('Out of bound y')
                     print(projectedPixel[1])
-                #projectedPixel[0] = min(imageXLimit, max(0, projectedPixel[0]))
-                #projectedPixel[1] = min(imageYLimit, max(0, projectedPixel[1]))
+                '''
+
+                # Ensure pixel coordinate are bounded to the image limits
+                projectedPixel[0] = min(imageXLimit, max(0, projectedPixel[0]))
+                projectedPixel[1] = min(imageYLimit, max(0, projectedPixel[1]))
 
                 # Change the respective canvas grayscale value to match that of the thresholded image
                 canvas[y,x] = thresholdedImage[projectedPixel[1], projectedPixel[0]]

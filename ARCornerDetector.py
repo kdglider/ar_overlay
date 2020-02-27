@@ -61,7 +61,7 @@ class ARCornerDetector:
 
         # Convert image to grayscale and apply binary thresholding to sharpen black/white areas
         gray = cv2.cvtColor(self.blurredImage, cv2.COLOR_BGR2GRAY)
-        retVal, self.thresholdedImage = cv2.threshold(gray, 240, 255, cv2.THRESH_BINARY)
+        retVal, self.thresholdedImage = cv2.threshold(gray, 245, 255, cv2.THRESH_BINARY)
 
         # Get AR tag contours
         self.getTagContours(self.thresholdedImage)
@@ -103,7 +103,10 @@ class ARCornerDetector:
     @param      image   BGR image
     @return     void
     '''
-    def visualization(self, image):
+    def visualization(self, image=None):
+        if (image.all() == None):
+            image = self.image
+
         # Resize image for easy viewing
         import imutils
         image = imutils.resize(image, width=1000)

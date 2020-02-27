@@ -34,7 +34,6 @@ class ImageOverlay:
         imageCorners = np.array([[0 , 0] , [imageXLimit , 0], \
                                  [imageXLimit , imageYLimit] , [0 , imageYLimit]])
 
-
         H = self.arDecoder.getHomography(tagCorners, imageCorners)
         
         xLow = min(tagCorners[:,0])
@@ -76,7 +75,8 @@ class ImageOverlay:
         IDFound = False
         for i in range(np.shape(self.tagCornerSets)[0]):
             tagCorners = self.tagCornerSets[i]
-            tagID, self.correctedTagCorners = self.arDecoder.decodeTag(self.thresholdedImage, tagCorners)
+            tagID, self.correctedTagCorners = \
+                self.arDecoder.decodeTag(self.thresholdedImage, tagCorners)
             self.tagContour = self.arDetector.tagContours[i]
 
             if (tagID == desiredTagID):
@@ -97,7 +97,7 @@ class ImageOverlay:
 
         if (saveVideo == True):
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter('CubeOverlayOutput.mp4', fourcc, 30, (720, 480))
+            out = cv2.VideoWriter('ImageOverlayOutput.mp4', fourcc, 30, (720, 480))
 
         while(videoCapture.isOpened()):
             ret, frame = videoCapture.read()
@@ -130,13 +130,13 @@ if __name__ == '__main__':
     # Select file of image to be superimposed
     # Select video file with AR tag(s) 
     imageFile = 'sample_images/Lena.png'
-    videoFile = 'sample_videos/Tag2.mp4'
+    videoFile = 'sample_videos/multipleTags.mp4'
 
     # Select ID of the desired tag to overlay cube on
-    desiredTagID = 13
+    desiredTagID = 3
 
     # Choose whether or not to save the output video
-    saveVideo = False
+    saveVideo = True
 
     imageOverlay = ImageOverlay()
     imageOverlay.runApplication(imageFile, videoFile, desiredTagID, saveVideo)

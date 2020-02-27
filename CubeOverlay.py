@@ -29,11 +29,6 @@ class CubeOverlay:
     def projectCube(self, cubePoints, frame, tagCornerSet, tagContour):
         tagCorners = np.reshape(tagCornerSet, (4,2))
 
-        #imageXLimit = np.shape(image)[1]-1
-        #imageYLimit = np.shape(image)[0]-1
-        #imageCorners = np.array([[0 , 0] , [imageXLimit , 0], \
-          #                       [imageXLimit , imageYLimit] , [0 , imageYLimit]])
-
         cubeBase = np.array([cubePoints[0][0:2],
                              cubePoints[1][0:2],
                              cubePoints[2][0:2],
@@ -83,7 +78,8 @@ class CubeOverlay:
         IDFound = False
         for i in range(np.shape(self.tagCornerSets)[0]):
             tagCorners = self.tagCornerSets[i]
-            tagID, self.correctedTagCorners = self.arDecoder.decodeTag(self.thresholdedImage, tagCorners)
+            tagID, self.correctedTagCorners = \
+                self.arDecoder.decodeTag(self.thresholdedImage, tagCorners)
             self.tagContour = self.arDetector.tagContours[i]
 
             if (tagID == desiredTagID):
@@ -91,7 +87,8 @@ class CubeOverlay:
                 break
         
         if (IDFound == True):
-            modifiedFrame = self.projectCube(cubePoints, frame, self.correctedTagCorners, self.tagContour)
+            modifiedFrame = self.projectCube(cubePoints, frame, \
+                                             self.correctedTagCorners, self.tagContour)
             return modifiedFrame
         else:
             return frame
@@ -149,8 +146,8 @@ if __name__ == '__main__':
                   [0,                   0,                      1]])
 
     # Select video file and ID of the desired tag to overlay cube on
-    videoFile = 'sample_videos/Tag1.mp4'
-    desiredTagID = 7
+    videoFile = 'sample_videos/multipleTags.mp4'
+    desiredTagID = 3
     saveVideo = False
 
     # Run application
