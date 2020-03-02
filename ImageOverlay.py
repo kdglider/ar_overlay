@@ -2,7 +2,7 @@
 Copyright (c) 2020 Hao Da (Kevin) Dong, Anshuman Singh
 @file       ImageOverlay.py
 @date       2020/02/20
-@brief      
+@brief      Application to overlay an image on an AR tag in a video stream
 @license    This project is released under the BSD-3-Clause license.
 '''
 

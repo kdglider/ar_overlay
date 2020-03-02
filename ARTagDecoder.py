@@ -3,7 +3,7 @@ Copyright (c) 2020 Hao Da (Kevin) Dong, Anshuman Singh
 @file       ARTagDecoder.py
 @date       2020/02/20
 @brief      Class with methods to correct for AR tag orientation, determine the ID and 
-            determine transformation matrices with respect to the camera
+            determine the projection matrix
 @license    This project is released under the BSD-3-Clause license.
 '''
 
@@ -12,8 +12,8 @@ import cv2
 from ARCornerDetector import ARCornerDetector
 
 '''
-@brief      Decoder with methods that corrects for the orientation of an AR tag, determines the 
-            ID and determines the transformation matrices
+@brief      Decoder with methods that correct for the orientation of an AR tag, determine the 
+            ID and determine the projection matrix
 '''
 class ARTagDecoder:
     thresholdedImage = np.array([])     # Thresholded image that contains the tag
@@ -28,7 +28,7 @@ class ARTagDecoder:
 
 
     '''
-    @brief      Finds the homography matrix between two sets with four points each
+    @brief      Finds the homography matrix between sets with four points each
     @param      srcPoints   4x2 NumPy array of source points in pixel coordinates
     @param      dstPoints   4x2 NumPy array of destination points in pixel coordinates
     @return     H           3x3 NumPy homography matrix
@@ -100,12 +100,13 @@ class ARTagDecoder:
 
 
     '''
-    @brief      Projects a skewed AR tag into an 8x8 matrix to decode for analysis
-    @param      thresholdedImage    Grayscale thresholded image from which the tag contour was taken
+    @brief      Projects a skewed AR tag from an image into an 8x8 matrix to decode for analysis
+    @param      thresholdedImage    Grayscale thresholded image containing tag corners
     @param      tagCorners          Corner set of a tag
     @return     unwarppedTag        8x8 matrix encoding the 64 cells of the unwarpped AR tag
     '''
     def unwarpTag(self, thresholdedImage=None, tagCorners=None):
+        # If no parameters are given, set default parameters to class attributes
         if (thresholdedImage.all() == None):
             thresholdedImage = self.thresholdedImage
         if (tagCorners.all() == None):
@@ -119,9 +120,10 @@ class ARTagDecoder:
         canvasCorners = np.array([[0 , 0] , [np.shape(canvas)[1]-1 , 0], \
             [np.shape(canvas)[1]-1 , np.shape(canvas)[0]-1] , [0 , np.shape(canvas)[0]-1]])
 
-        # Reshape tagCorners into a 4x2 matrix and get homography matrix with the canvas corners
+        # Get homography matrix from the canvas corners to the tag corners
         H = self.getHomography(canvasCorners, tagCorners)
 
+        # Define the pixel limits of the thresholded image
         imageXLimit = np.shape(thresholdedImage)[1]-1
         imageYLimit = np.shape(thresholdedImage)[0]-1
 
@@ -133,26 +135,13 @@ class ARTagDecoder:
                 # Construct augmented vector and apply homography transformation
                 projectedVector = np.matmul(H, np.array([x,y,1]))
 
-                # Normalize the project x,y values and reconstruct a 2D pixel vector
+                # Normalize the projected vector x,y values and reconstruct a 2D pixel vector
                 projectedPixel = np.array([projectedVector[0]/projectedVector[2], \
                                            projectedVector[1]/projectedVector[2]])
                 
                 # Round pixel values and convert to integers for indexing
                 projectedPixel = np.round(projectedPixel)
                 projectedPixel = projectedPixel.astype(int)
-
-                '''
-                if (projectedPixel[0] < 0 or projectedPixel[0] > imageXLimit):
-                    print('Out of bound x')
-                    print(projectedPixel[0])
-                    print(tagCorners)
-                    #cv2.imshow('Contours', thresholdedImage)
-                    #cv2.waitKey(0)
-
-                if (projectedPixel[1] < 0 or projectedPixel[1] > imageYLimit):
-                    print('Out of bound y')
-                    print(projectedPixel[1])
-                '''
 
                 # Ensure pixel coordinate are bounded to the image limits
                 projectedPixel[0] = min(imageXLimit, max(0, projectedPixel[0]))
@@ -169,20 +158,24 @@ class ARTagDecoder:
 
 
     '''
-    @brief      Corrects the orientation of a tag and decodes the ID
-    @param      thresholdedImage    Grayscale thresholded image from which the tag contour was taken
+    @brief      Unwarps a tag from an image, corrects the orientation and decodes the ID
+    @param      thresholdedImage    Grayscale thresholded image from which the tag corners were taken
     @param      tagCorners          Corner set of a tag
     @return     tagID               8x8 matrix encoding the 64 cells of the unwarpped AR tag
     @return     correctedTagCorners Tag corner set corrected for orientation
     '''
     def decodeTag(self, thresholdedImage, tagCorners):
+        # Update class attributes with parameters
         self.thresholdedImage = thresholdedImage
         self.tagCorners = np.reshape(tagCorners, (4,2))
 
         # Unwarp image tag to generate 8x8 matrix to decode orientation and ID
         tag = self.unwarpTag(thresholdedImage, tagCorners)
 
-        # Correct tag orientation and record
+        # Correct tag orientation and record corrected corners 
+        # With the tag upright, the top-left corner should be the first row in the array, with 
+        # the remaining corners added in CW order
+
         # If orientation square is in the top-left, rotate tag and corners 180 degrees
         if (tag[2,2] == 255):
             tag = np.rot90(tag, k=2)
@@ -204,8 +197,8 @@ class ARTagDecoder:
 
         self.tag = tag
 
-        # With tag in correct orientation, construct ID code in binary (python string format)
-        # from the middle four squares (top-left LSB and moving CW)
+        # With tag in the correct orientation, construct ID code in binary (python string format)
+        # from the middle four squares (top-left LSB and moving CW to MSB)
         binaryID = str(int(tag[4,3]==255)) + str(int(tag[4,4]==255)) + \
                     str(int(tag[3,4]==255)) + str(int(tag[3,3]==255))
         
@@ -217,34 +210,42 @@ class ARTagDecoder:
 
 
 if __name__ == '__main__':
+    # Sample image
     imageFilename = 'sample_images/multipleTags.png'
     image = cv2.imread(imageFilename)
 
+    # Sample camera intrinsic matrix
     K = np.array([[1406.08415449821,    2.206797873085990,      1014.136434174160],
                   [0,                   1417.99930662800,       566.347754321696],
                   [0,                   0,                      1]])
     
+    # Create detector and decoder instances
     arCornerDetector = ARCornerDetector()
+    arDecoder = ARTagDecoder()
+
+    # Detect corners
     arCornerDetector.getTagCorners(image)
 
+    # Sample canvas
     canvasCorners = np.array([[0 , 0] , [100, 0], \
                               [100 , 100] , [0 , 100]])
 
-    arDecoder = ARTagDecoder()
-
-    H = arDecoder.getHomography(canvasCorners, np.reshape(arCornerDetector.tagCornerSets[1], (4,2)))
+    # Generae projection matrix with first cornerset in arCornerDetector
+    H = arDecoder.getHomography(canvasCorners, np.reshape(arCornerDetector.tagCornerSets[0], (4,2)))
     P = arDecoder.getProjectionMatrix(H, K)
     print('The projection matrix is: ')
     print(P)
 
     
-    arDecoder.decodeTag(arCornerDetector.thresholdedImage, arCornerDetector.tagCornerSets[1])
+    # Print uncorrected tag corners, corrected tag corners and tag ID
+    arDecoder.decodeTag(arCornerDetector.thresholdedImage, arCornerDetector.tagCornerSets[0])
+
     print('The uncorrected tag corners are: ')
-    print(arCornerDetector.tagCornerSets[1])
+    print(arCornerDetector.tagCornerSets[0])
 
     print('The corrected tag corners are: ')
     print(arDecoder.correctedTagCorners)
-    # print(arDecoder.tag)
+
     print('The tag ID is: ')
     print(arDecoder.tagID)
 
