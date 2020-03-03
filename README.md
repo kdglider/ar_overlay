@@ -6,7 +6,6 @@ This project is an augmented reality application where specifc AR tags are recog
 <p align="center">
   <img src="/Results/AR_grid.png">
 </p>
-![Sample AR Tag with Grid](/Results/AR_grid.png)
 
 The AR tags use an encoding scheme that can be described as follows:
 
@@ -85,9 +84,13 @@ This gives a demonstration of the functionalities of these classes. In particula
 ## Results and Known Issues
 Sample screenshots taken from the image and cube overlay videos are shown below.
 
-![Sample Image Overlay Result](/Results/Image_Result.PNG)
+<p align="center">
+  <img width="500" src="/Results/Image_Result.PNG">
+</p>
 
-![Sample Cube Overlay Result](/Results/Cube_Result.PNG)
+<p align="center">
+  <img width="500" src="/Results/Cube_Result.PNG">
+</p>
 
 The projected cube in the video stream will appear to wobble, especially when the tag is more warpped in the frame. This is probably due to the simplistic method used to compute the project matrix (the scale factor lambda is simply taken as the average of two vector magnitudes). A more complex method can be used in future iterations.
 
