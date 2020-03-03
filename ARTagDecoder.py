@@ -220,28 +220,28 @@ if __name__ == '__main__':
                   [0,                   0,                      1]])
     
     # Create detector and decoder instances
-    arCornerDetector = ARCornerDetector()
+    arDetector = ARCornerDetector()
     arDecoder = ARTagDecoder()
 
     # Detect corners
-    arCornerDetector.getTagCorners(image)
+    arDetector.getTagCorners(image)
 
     # Sample canvas
     canvasCorners = np.array([[0 , 0] , [100, 0], \
                               [100 , 100] , [0 , 100]])
 
-    # Generae projection matrix with first cornerset in arCornerDetector
-    H = arDecoder.getHomography(canvasCorners, np.reshape(arCornerDetector.tagCornerSets[0], (4,2)))
+    # Generae projection matrix with first cornerset in arDetector
+    H = arDecoder.getHomography(canvasCorners, np.reshape(arDetector.tagCornerSets[0], (4,2)))
     P = arDecoder.getProjectionMatrix(H, K)
     print('The projection matrix is: ')
     print(P)
 
     
     # Print uncorrected tag corners, corrected tag corners and tag ID
-    arDecoder.decodeTag(arCornerDetector.thresholdedImage, arCornerDetector.tagCornerSets[0])
+    arDecoder.decodeTag(arDetector.thresholdedImage, arDetector.tagCornerSets[0])
 
     print('The uncorrected tag corners are: ')
-    print(arCornerDetector.tagCornerSets[0])
+    print(arDetector.tagCornerSets[0])
 
     print('The corrected tag corners are: ')
     print(arDecoder.correctedTagCorners)

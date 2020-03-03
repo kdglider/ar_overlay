@@ -11,21 +11,32 @@ import cv2
 from ARCornerDetector import ARCornerDetector
 from ARTagDecoder import ARTagDecoder
 
-
+'''
+@brief      AR application which overlays a cube on an AR tag in a video stream
+'''
 class CubeOverlay:
-    arDetector = ARCornerDetector()     
-    arDecoder = ARTagDecoder()
+    arDetector = ARCornerDetector()     # Corner detector object
+    arDecoder = ARTagDecoder()          # Tag decoder object
 
     thresholdedImage = np.array([])     # Thresholded image frame from arDetector
     tagCornerSets = np.array([])        # Array of all tag corner sets from arDetector
     correctedTagCorners = np.array([])  # Set of tag corners corrected for orientation
     tagContour = np.array([])           # Tag contour
-    K = np.array([])
+    K = np.array([])                    # Camera intrinsic matrix
 
 
     def __init__(self, K):
         self.K = K
 
+
+    '''
+    @brief      Replaces the tag BGR values in a frame with the BGR values of an image
+    @param      cubePoints      8x3 NumPy array of 8 points that defines the cube to overlay
+    @param      frame           Current video frame that is being read
+    @param      tagCornerSet    NumPy array of the corners of the tag to overlay image on
+    @param      tagContour      Contour of the tag to overlay image on
+    @return     frameCopy       Copy of the video frame with the image overlaid on AR tag
+    '''
     def projectCube(self, cubePoints, frame, tagCornerSet, tagContour):
         tagCorners = np.reshape(tagCornerSet, (4,2))
 
