@@ -3,6 +3,9 @@
 ## Overview
 This project is an augmented reality application where specifc AR tags are recognized in a video stream and overlaid with either an image or a 3D cube. A sample tag is shown below:
 
+<p align="center">
+  <img src="/Results/AR_grid.png">
+</p>
 ![Sample AR Tag with Grid](/Results/AR_grid.png)
 
 The AR tags use an encoding scheme that can be described as follows:
