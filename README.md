@@ -82,9 +82,9 @@ This gives a demonstration of the functionalities of these classes. In particula
 ## Results and Known Issues
 Sample screenshots taken from the image and cube overlay videos are shown below.
 
-![Sample Image Overlay Result](/Results/Image_Result.png)
+![Sample Image Overlay Result](/Results/Image_Result.PNG)
 
-![Sample Cube Overlay Result](/Results/Cube_Result.png)
+![Sample Cube Overlay Result](/Results/Cube_Result.PNG)
 
 The projected cube in the video stream will appear to wobble, especially when the tag is more warpped in the frame. This is probably due to the simplistic method used to compute the project matrix (the scale factor lambda is simply taken as the average of two vector magnitudes). A more complex method can be used in future iterations.
 
